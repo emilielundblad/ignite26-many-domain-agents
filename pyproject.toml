@@ -1,0 +1,21 @@
+[tool.ruff]
+line-length = 140
+target-version = "py310"
+
+[tool.ruff.lint]
+# E/F/W: pycodestyle and pyflakes; I: imports; B: bugbear; S: bandit security checks; UP: modern syntax
+select = ["E", "F", "W", "I", "B", "S", "UP"]
+ignore = ["B008", "E501"]  # B008: FastAPI uses calls in parameter defaults by design; E501: long data lines
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/*" = ["S101", "E402", "S310"]
+"tests/*" = ["S101", "E402", "S310", "S318"]  # S318: parses only this repo's own policy files
+# Subprocess calls run fixed azd/az commands resolved with shutil.which, never shell=True.
+"identity/*" = ["S603", "S310"]
+"scripts/*" = ["S603", "E402", "UP036"]  # UP036: friendly message on old Python
+"agents/run_demo3.py" = ["S310"]
+# Uvicorn must listen on all interfaces inside the container.
+"apps/*/app/main.py" = ["S104"]
+
+[tool.pytest.ini_options]
+addopts = "-p no:cacheprovider"

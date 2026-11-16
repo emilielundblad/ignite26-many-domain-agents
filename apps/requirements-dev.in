@@ -1,0 +1,4 @@
+pytest
+colorama ; sys_platform == "win32"  # pytest dependency on Windows; keep so --require-hashes works there
+httpx
+ruff

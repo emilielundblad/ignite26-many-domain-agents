@@ -1,0 +1,47 @@
+<!--
+  Policy for one domain's REST API (__REST_NAME__), the operations behind the MCP tools.
+  Defense in depth: the same domain check runs here, so the REST path in API
+  Management cannot be used to go around the MCP server.
+
+  The token arrives either in Authorization (direct call) or in x-ig26-agent-token
+  (set by the MCP server policy). Named value ig26-rest-scope-auth = "on" enforces
+  it. See docs/troubleshooting.md before setting it to "off".
+  Both headers are removed before the request goes to the backend.
+-->
+<policies>
+	<inbound>
+		<base />
+		<choose>
+			<when condition="@("{{ig26-rest-scope-auth}}" == "on")">
+				<set-variable name="ig26-required-role" value="__APP_ROLE__" />
+				<choose>
+					<when condition="@(!context.Request.Headers.ContainsKey("Authorization"))">
+						<choose>
+							<when condition="@(context.Request.Headers.ContainsKey("x-ig26-agent-token"))">
+								<set-header name="Authorization" exists-action="override">
+									<value>@(context.Request.Headers.GetValueOrDefault("x-ig26-agent-token", ""))</value>
+								</set-header>
+							</when>
+						</choose>
+					</when>
+				</choose>
+				<include-fragment fragment-id="ig26-authorize-agent" />
+				<set-header name="x-ig26-caller" exists-action="override">
+					<value>@((string)context.Variables["ig26-caller"])</value>
+				</set-header>
+			</when>
+		</choose>
+		<set-header name="Authorization" exists-action="delete" />
+		<set-header name="x-ig26-agent-token" exists-action="delete" />
+	</inbound>
+	<backend>
+		<base />
+	</backend>
+	<outbound>
+		<base />
+		<set-header name="x-ig26-caller" exists-action="delete" />
+	</outbound>
+	<on-error>
+		<base />
+	</on-error>
+</policies>

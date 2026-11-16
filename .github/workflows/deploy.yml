@@ -1,0 +1,58 @@
+name: deploy
+
+# Manual deploy of the lab from GitHub, signed in with OpenID Connect: no secrets
+# are stored in GitHub. Prerequisites (one time, see docs/github-deploy.md):
+#   1. Run `azd up` once from your own session, so the Entra gateway app and the
+#      agents exist (those steps need your Entra rights, not the pipeline's).
+#   2. Deploy infra/bootstrap/deploy-identity.bicep.
+#   3. Create the GitHub environment `demo` with yourself as required reviewer,
+#      and set these environment VARIABLES (not secrets, they are identifiers):
+#      AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, AZURE_ENV_NAME,
+#      AZURE_LOCATION, MCP_GATEWAY_APP_ID
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-demo
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: demo
+    env:
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      MCP_GATEWAY_APP_ID: ${{ vars.MCP_GATEWAY_APP_ID }}
+      # Entra objects and agents are created from a person's session, not by the pipeline.
+      IG26_SKIP_ENTRA_SETUP: "true"
+      IG26_SKIP_AGENT_SETUP: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: Azure/setup-azd@0b7e3a35ab00f2eee7080c845eb39c3f0ebfa553 # v2.4.0
+      - name: Sign in with OIDC
+        run: |
+          azd auth login \
+            --client-id "$AZURE_CLIENT_ID" \
+            --federated-credential-provider github \
+            --tenant-id "$AZURE_TENANT_ID"
+      - name: Select environment
+        run: |
+          azd env new "$AZURE_ENV_NAME" --subscription "$AZURE_SUBSCRIPTION_ID" --location "$AZURE_LOCATION" --no-prompt || azd env select "$AZURE_ENV_NAME"
+          azd env set MCP_GATEWAY_APP_ID "$MCP_GATEWAY_APP_ID"
+      - name: What-if
+        run: azd provision --preview --no-prompt
+      - name: Provision
+        run: azd provision --no-prompt
+      - name: Deploy
+        run: azd deploy --no-prompt

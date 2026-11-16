@@ -1,0 +1,15 @@
+<!-- Global (all APIs) policy. Kept small: strip headers that reveal implementation details. -->
+<policies>
+	<inbound>
+		<set-header name="X-Forwarded-Host" exists-action="delete" />
+	</inbound>
+	<backend>
+		<forward-request />
+	</backend>
+	<outbound>
+		<set-header name="X-Powered-By" exists-action="delete" />
+		<set-header name="X-AspNet-Version" exists-action="delete" />
+		<set-header name="Server" exists-action="delete" />
+	</outbound>
+	<on-error />
+</policies>

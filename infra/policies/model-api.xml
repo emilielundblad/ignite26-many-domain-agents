@@ -1,0 +1,65 @@
+<!--
+  AI gateway route for the __DOMAIN__ domain's models.
+  Foundry Agent Service calls this route through the project's API Management
+  connection, authenticating as the project managed identity.
+
+  1. Only the __DOMAIN__ project may use this route (xms_mirid claim).
+  2. llm-content-safety on the prompt, before the model.
+  3. llm-token-limit: a tokens-per-minute budget per domain.
+  4. llm-emit-token-metric: token usage per domain for chargeback (max 5 custom dimensions).
+  5. API Management calls Foundry with its own managed identity.
+
+  https://learn.microsoft.com/azure/api-management/llm-token-limit-policy
+  https://learn.microsoft.com/azure/api-management/llm-emit-token-metric-policy
+-->
+<policies>
+	<inbound>
+		<base />
+		<validate-azure-ad-token tenant-id="{{ig26-tenant-id}}" header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized: a Microsoft Entra token is required." output-token-variable-name="ig26-jwt">
+			<audiences>
+				<audience>https://cognitiveservices.azure.com</audience>
+			</audiences>
+		</validate-azure-ad-token>
+		<set-variable name="ig26-caller-project" value="@(((Jwt)context.Variables["ig26-jwt"]).Claims.GetValueOrDefault("xms_mirid", ""))" />
+		<choose>
+			<when condition="@(!((string)context.Variables["ig26-caller-project"]).Equals("__PROJECT_ID__", StringComparison.OrdinalIgnoreCase))">
+				<trace source="ig26-model-route" severity="error">
+					<message>@("DENY model route __DOMAIN__ for " + (string)context.Variables["ig26-caller-project"])</message>
+					<metadata name="ig26.decision" value="deny" />
+				</trace>
+				<return-response>
+					<set-status code="403" reason="Forbidden" />
+					<set-header name="Content-Type" exists-action="override">
+						<value>application/json</value>
+					</set-header>
+					<set-body>{"error":"forbidden","reason":"Only the __DOMAIN__ project may use this model route."}</set-body>
+				</return-response>
+			</when>
+		</choose>
+		<llm-content-safety backend-id="ig26-content-safety" shield-prompt="true">
+			<categories output-type="EightSeverityLevels">
+				<category name="Hate" threshold="4" />
+				<category name="Violence" threshold="4" />
+				<category name="SelfHarm" threshold="4" />
+				<category name="Sexual" threshold="4" />
+			</categories>
+		</llm-content-safety>
+		<llm-token-limit counter-key="__DOMAIN__" tokens-per-minute="__TPM__" estimate-prompt-tokens="true" remaining-tokens-header-name="x-ig26-remaining-tokens" tokens-consumed-header-name="x-ig26-consumed-tokens" />
+		<llm-emit-token-metric namespace="ig26">
+			<dimension name="Domain" value="__DOMAIN__" />
+			<dimension name="API ID" />
+			<dimension name="Operation ID" />
+			<dimension name="Deployment" value="@(context.Request.MatchedParameters.GetValueOrDefault("deployment-id", "unknown"))" />
+		</llm-emit-token-metric>
+		<set-backend-service backend-id="ig26-foundry-openai" />
+	</inbound>
+	<backend>
+		<base />
+	</backend>
+	<outbound>
+		<base />
+	</outbound>
+	<on-error>
+		<base />
+	</on-error>
+</policies>

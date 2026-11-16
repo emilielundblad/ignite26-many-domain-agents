@@ -1,0 +1,78 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apps:
+    name: Mock APIs (lint, tests, image build)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [ticketing-api, knowledge-api, creditnote-api]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install (hash-pinned)
+        run: |
+          python -m pip install --require-hashes -r apps/${{ matrix.app }}/requirements.txt
+          python -m pip install --require-hashes -r apps/requirements-dev.txt
+      - name: Lint
+        run: ruff check apps/${{ matrix.app }}
+      - name: Test
+        working-directory: apps/${{ matrix.app }}
+        run: python -m pytest -q
+      - name: Build image (no push)
+        run: docker build --pull -t ${{ matrix.app }}:ci apps/${{ matrix.app }}
+
+  scripts:
+    name: Agent and identity scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install (hash-pinned)
+        run: |
+          python -m pip install --require-hashes -r agents/requirements.txt
+          python -m pip install --require-hashes -r apps/requirements-dev.txt
+      - name: Lint
+        run: ruff check agents identity scripts tests
+      - name: Test
+        run: python -m pytest -q tests
+
+  infra:
+    name: Bicep and API Management policies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Bicep build and lint
+        run: |
+          az bicep install
+          az bicep build --file infra/main.bicep --stdout > /dev/null
+          az bicep lint --file infra/main.bicep
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Policy XML is well formed
+        run: python tests/check_policies.py

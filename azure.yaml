@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+name: ig26-many-domain-agents
+metadata:
+  template: ig26-many-domain-agents@1.0.0
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
+
+services:
+  ticketing-api:
+    project: ./apps/ticketing-api
+    language: python
+    host: containerapp
+    docker:
+      path: Dockerfile
+      remoteBuild: true
+  knowledge-api:
+    project: ./apps/knowledge-api
+    language: python
+    host: containerapp
+    docker:
+      path: Dockerfile
+      remoteBuild: true
+  creditnote-api:
+    project: ./apps/creditnote-api
+    language: python
+    host: containerapp
+    docker:
+      path: Dockerfile
+      remoteBuild: true
+
+hooks:
+  preprovision:
+    posix:
+      shell: sh
+      run: python3 scripts/hooks.py preprovision
+      interactive: true
+      continueOnError: false
+    windows:
+      shell: pwsh
+      run: python scripts/hooks.py preprovision
+      interactive: true
+      continueOnError: false
+  postdeploy:
+    posix:
+      shell: sh
+      run: python3 scripts/hooks.py postdeploy
+      interactive: true
+      continueOnError: false
+    windows:
+      shell: pwsh
+      run: python scripts/hooks.py postdeploy
+      interactive: true
+      continueOnError: false

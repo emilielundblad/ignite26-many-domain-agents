@@ -1,0 +1,38 @@
+<!--
+  Policy for one domain's MCP server (__MCP_NAME__).
+  Runs for tools/list and every tools/call, before the backend.
+
+  llm-content-safety checks MCP requests (tool arguments) with Prompt Shields and
+  the harm categories. https://learn.microsoft.com/azure/api-management/llm-content-safety-policy
+  Do not read context.Response.Body in MCP policies: it buffers the response and
+  breaks streaming.
+-->
+<policies>
+	<inbound>
+		<base />
+		<set-variable name="ig26-required-role" value="__APP_ROLE__" />
+		<include-fragment fragment-id="ig26-authorize-agent" />
+		<llm-content-safety backend-id="ig26-content-safety" shield-prompt="true">
+			<categories output-type="EightSeverityLevels">
+				<category name="Hate" threshold="4" />
+				<category name="Violence" threshold="4" />
+				<category name="SelfHarm" threshold="4" />
+				<category name="Sexual" threshold="4" />
+			</categories>
+		</llm-content-safety>
+		<!-- Pass the already validated token to the tool operation so the REST API scope can re-check it.
+		     https://learn.microsoft.com/azure/api-management/secure-mcp-servers -->
+		<set-header name="x-ig26-agent-token" exists-action="override">
+			<value>@(context.Request.Headers.GetValueOrDefault("Authorization", ""))</value>
+		</set-header>
+	</inbound>
+	<backend>
+		<base />
+	</backend>
+	<outbound>
+		<base />
+	</outbound>
+	<on-error>
+		<base />
+	</on-error>
+</policies>

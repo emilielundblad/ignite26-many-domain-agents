@@ -1,0 +1,85 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Knowledge API",
+    "version": "1.0.0",
+    "description": "Product articles for the fictional Aurora smart thermostat. Every article has a stable URL to cite. Fake data."
+  },
+  "paths": {
+    "/articles/search": {
+      "get": {
+        "operationId": "search-articles",
+        "summary": "Search product articles",
+        "description": "Keyword search over product support articles. Returns article id, title, citation URL and a snippet. Use get-article for the full text.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Search words, for example 'hysteresis short cycling'.",
+            "schema": { "type": "string", "minLength": 2, "maxLength": 200 }
+          },
+          {
+            "name": "top",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of results, 1 to 10. Default 5.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 10, "default": 5 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search hits",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/SearchHit" } } } }
+          }
+        }
+      }
+    },
+    "/articles/{article_id}": {
+      "get": {
+        "operationId": "get-article",
+        "summary": "Get one product article",
+        "description": "Returns the full text and citation URL of one article, for example KB0001.",
+        "parameters": [
+          {
+            "name": "article_id",
+            "in": "path",
+            "required": true,
+            "description": "Article id in the form KB0001.",
+            "schema": { "type": "string", "pattern": "^KB\\d{4}$" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Article", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Article" } } } },
+          "404": { "description": "Article not found" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Article": {
+        "type": "object",
+        "required": ["id", "title", "body", "tags", "url"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "body": { "type": "string" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "url": { "type": "string" }
+        }
+      },
+      "SearchHit": {
+        "type": "object",
+        "required": ["id", "title", "url", "score", "snippet"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "url": { "type": "string" },
+          "score": { "type": "integer" },
+          "snippet": { "type": "string" }
+        }
+      }
+    }
+  }
+}

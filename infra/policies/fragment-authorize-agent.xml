@@ -1,0 +1,69 @@
+<!--
+  ig26-authorize-agent: the domain boundary.
+
+  Callers set the variable "ig26-required-role" before including this fragment.
+  1. Validate the Entra token: issued by this tenant, audience = the governed MCP gateway app.
+  2. Read the caller (azp for v2 tokens, appid for v1) and its app roles.
+  3. Allow only callers that hold the domain's app role. App roles are granted as
+     app role assignments on the gateway app, so access is visible, reviewable and
+     revocable in Entra, and Conditional Access applies because the gateway is an
+     Entra resource with a service principal.
+  On deny: 403 with a reason, a trace record and a custom metric, before any backend
+  or model sees the request.
+
+  Docs: https://learn.microsoft.com/azure/api-management/validate-azure-ad-token-policy
+        https://learn.microsoft.com/azure/api-management/secure-mcp-servers
+-->
+<fragment>
+	<validate-azure-ad-token tenant-id="{{ig26-tenant-id}}" header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized: a Microsoft Entra token for the governed MCP gateway is required." output-token-variable-name="ig26-jwt">
+		<audiences>
+			<audience>{{ig26-mcp-gateway-app-id}}</audience>
+			<audience>api://{{ig26-mcp-gateway-app-id}}</audience>
+		</audiences>
+	</validate-azure-ad-token>
+	<set-variable name="ig26-caller" value="@{
+		var jwt = (Jwt)context.Variables["ig26-jwt"];
+		return jwt.Claims.GetValueOrDefault("azp", jwt.Claims.GetValueOrDefault("appid", "unknown"));
+	}" />
+	<set-variable name="ig26-caller-roles" value="@{
+		var jwt = (Jwt)context.Variables["ig26-jwt"];
+		return jwt.Claims.ContainsKey("roles") ? string.Join(",", jwt.Claims["roles"]) : "";
+	}" />
+	<choose>
+		<when condition="@(!((string)context.Variables["ig26-caller-roles"]).Split(',').Contains((string)context.Variables["ig26-required-role"]))">
+			<trace source="ig26-domain-boundary" severity="error">
+				<message>@("DENY caller=" + (string)context.Variables["ig26-caller"] + " api=" + context.Api.Name + " required_role=" + (string)context.Variables["ig26-required-role"])</message>
+				<metadata name="ig26.decision" value="deny" />
+				<metadata name="ig26.caller" value="@((string)context.Variables["ig26-caller"])" />
+				<metadata name="ig26.api" value="@(context.Api.Name)" />
+				<metadata name="ig26.required_role" value="@((string)context.Variables["ig26-required-role"])" />
+			</trace>
+			<emit-metric name="ig26-boundary-deny" namespace="ig26">
+				<dimension name="Caller" value="@((string)context.Variables["ig26-caller"])" />
+				<dimension name="API ID" />
+			</emit-metric>
+			<return-response>
+				<set-status code="403" reason="Forbidden" />
+				<set-header name="Content-Type" exists-action="override">
+					<value>application/json</value>
+				</set-header>
+				<set-header name="x-ig26-deny-reason" exists-action="override">
+					<value>domain-boundary</value>
+				</set-header>
+				<set-body>@(new JObject(
+					new JProperty("error", "forbidden"),
+					new JProperty("reason", "This agent's domain is not allowed to use this tool. Denied at the API Management AI gateway before reaching the backend."),
+					new JProperty("caller", (string)context.Variables["ig26-caller"]),
+					new JProperty("api", context.Api.Name),
+					new JProperty("requiredRole", (string)context.Variables["ig26-required-role"]),
+					new JProperty("requestId", context.RequestId.ToString())
+				).ToString())</set-body>
+			</return-response>
+		</when>
+	</choose>
+	<trace source="ig26-domain-boundary" severity="information">
+		<message>@("ALLOW caller=" + (string)context.Variables["ig26-caller"] + " api=" + context.Api.Name)</message>
+		<metadata name="ig26.decision" value="allow" />
+		<metadata name="ig26.caller" value="@((string)context.Variables["ig26-caller"])" />
+	</trace>
+</fragment>

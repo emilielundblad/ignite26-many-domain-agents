@@ -1,0 +1,40 @@
+# Secrets and local settings: never commit
+.env
+.env.*
+*.pfx
+*.pem
+*.key
+*.publishsettings
+.azure/
+.claude/settings.local.json
+
+# Build output
+bin/
+obj/
+dist/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+node_modules/
+
+# Bicep and azd
+infra/*.json
+!infra/main.parameters.json
+!infra/bicepconfig.json
+
+# Local lab state (agent identities, virtual environment)
+.ig26/
+
+# Editor and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Recordings
+*.mp4
+*.mov
+recordings/

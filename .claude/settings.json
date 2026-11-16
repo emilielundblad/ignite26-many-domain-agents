@@ -1,0 +1,51 @@
+{
+  "permissions": {
+    "defaultMode": "default",
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash(az account show:*)",
+      "Bash(az bicep build:*)",
+      "Bash(az deployment sub what-if:*)",
+      "Bash(az deployment group what-if:*)",
+      "Bash(az * list:*)",
+      "Bash(az * show:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(python tests/check_policies.py:*)",
+      "Bash(azd provision --preview:*)",
+      "Bash(python -m identity.show_agent_identities:*)",
+      "Bash(python -m identity.run_demo1:*)"
+    ],
+    "ask": [
+      "Bash(az deployment:*)",
+      "Bash(azd:*)",
+      "Bash(az role:*)",
+      "Bash(az ad:*)",
+      "Bash(az rest:*)",
+      "Bash(pwsh:*)",
+      "Bash(gh:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [
+      "Bash(az group delete:*)",
+      "Bash(az * delete:*)",
+      "Bash(az keyvault secret show:*)",
+      "Bash(az keyvault secret download:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(curl * | bash:*)",
+      "Bash(curl * | sh:*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(~/.azure/**)",
+      "Read(~/.ssh/**)",
+      "Bash(python scripts/teardown.py:*)",
+      "Bash(azd down:*)"
+    ]
+  }
+}
