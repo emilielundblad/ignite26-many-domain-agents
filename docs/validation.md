@@ -17,7 +17,7 @@
 These depend on service behaviour that cannot be tested offline. Run `azd up`, then demos 2 and 3, after any change to them:
 
 - API Management accepts the MCP server definition (`mcpTools`) and the policies (the October 2026 release validates policies more strictly).
-- Foundry accepts the `AgenticIdentityToken` and `ProjectManagedIdentity` connections and the model route `ig26-models/<deployment>`.
+- Foundry accepts the `AgenticIdentityToken` and `ProjectManagedIdentity` connections and the model route `ig26-models-<project>/<deployment>`.
 - Agent identity tokens carry the gateway app roles, and the MCP server forwards `x-ig26-agent-token` to the REST API scope.
 - Content safety blocks the jailbreak sample; the Support token budget returns 429.
 

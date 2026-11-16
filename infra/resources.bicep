@@ -288,6 +288,5 @@ output apimGatewayUrl string = apim.outputs.gatewayUrl
 output foundryAccountName string = foundry.outputs.accountName
 output projectEndpoints object = foundry.outputs.projectEndpoints
 output modelDeploymentName string = foundry.outputs.modelDeploymentName
-output modelGatewayConnectionName string = supportConnections.outputs.modelGatewayConnectionName
 output logAnalyticsCustomerId string = monitoring.outputs.logAnalyticsCustomerId
 output appInsightsName string = monitoring.outputs.appInsightsName

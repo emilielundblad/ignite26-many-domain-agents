@@ -100,7 +100,6 @@ output FOUNDRY_PROJECT_ENDPOINT_SUPPORT string = resources.outputs.projectEndpoi
 output FOUNDRY_PROJECT_ENDPOINT_DOCS string = resources.outputs.projectEndpoints.docs
 output FOUNDRY_PROJECT_ENDPOINT_CUSTOPS string = resources.outputs.projectEndpoints.custops
 output MODEL_DEPLOYMENT_NAME string = resources.outputs.modelDeploymentName
-output MODEL_GATEWAY_CONNECTION_NAME string = resources.outputs.modelGatewayConnectionName
 output MCP_GATEWAY_APP_ID string = mcpGatewayAppId
 output LOG_ANALYTICS_WORKSPACE_ID string = resources.outputs.logAnalyticsCustomerId
 output APPLICATIONINSIGHTS_NAME string = resources.outputs.appInsightsName

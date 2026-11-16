@@ -126,10 +126,11 @@ def test_build_definition_routes_tools_through_gateway():
     from agents.common import AGENTS
     from agents.setup_agents import build_definition
 
-    d = build_definition(AGENTS[0], "ig26-models/gpt-4.1-mini", "https://apim.example.net")
+    d = build_definition(AGENTS[0], "ig26-models-support/gpt-4.1-mini", "https://apim.example.net")
     tools = d["tools"]
     assert {t["server_url"] for t in tools} == {f"https://apim.example.net/{s}/mcp" for s in AGENTS[0].mcp_servers}
-    assert all(t["project_connection_id"] in AGENTS[0].mcp_servers for t in tools)
+    # Connection names are account-unique, so they carry the agent's project suffix.
+    assert {t["project_connection_id"] for t in tools} == {f"{s}-{AGENTS[0].project}" for s in AGENTS[0].mcp_servers}
     assert all(t["require_approval"] == "never" for t in tools)
 
 

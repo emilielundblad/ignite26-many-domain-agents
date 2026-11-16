@@ -3,7 +3,7 @@ domain's app roles. Runs as the azd `postdeploy` hook; safe to re-run.
 
 For each agent:
 1. Create a new agent version in its domain project (Foundry Agent Service).
-   Model:  ig26-models/<deployment>, i.e. through the domain's AI gateway route.
+   Model:  ig26-models-<project>/<deployment>, i.e. through the domain's AI gateway route.
    Tools:  MCP servers in API Management, through project connections that
            authenticate as the agent's own Entra agent identity.
 2. Wait for Foundry to create the agent identity and read its object ID.
@@ -37,7 +37,8 @@ def build_definition(spec: AgentSpec, model: str, gateway_url: str) -> PromptAge
         MCPTool(
             server_label=SERVER_LABELS[server],
             server_url=f"{gateway_url}/{server}/mcp",
-            project_connection_id=server,
+            # Connection names are unique per account, so they carry the project suffix.
+            project_connection_id=f"{server}-{spec.project}",
             require_approval="never",
         )
         for server in spec.mcp_servers
@@ -73,15 +74,14 @@ def main() -> None:
     values = env()
     gateway_url = values["APIM_GATEWAY_URL"].rstrip("/")
     deployment = values["MODEL_DEPLOYMENT_NAME"]
-    connection = values.get("MODEL_GATEWAY_CONNECTION_NAME", "ig26-models")
     sp_id = values.get("MCP_GATEWAY_SP_ID")
     require_gateway = os.getenv("IG26_REQUIRE_MODEL_GATEWAY", "false").lower() == "true"
-    gateway_model = f"{connection}/{deployment}"
 
     state = {"createdAt": datetime.now(timezone.utc).isoformat(), "agents": []}
     problems = []
 
     for spec in AGENTS:
+        gateway_model = f"ig26-models-{spec.project}/{deployment}"
         client = project_client(values[spec.endpoint_key])
         print(f"\n[{spec.name}] creating agent version in project '{spec.project}' (model route: AI gateway)")
         version = create(client, spec, gateway_model, gateway_url)

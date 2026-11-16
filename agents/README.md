@@ -9,7 +9,7 @@ Agent setup and demo scripts for Foundry Agent Service, using `azure-ai-projects
 | `run_demo3.py` | Demo 3: no token, content safety, token budgets, token metrics |
 | `common.py` | Agent definitions, instructions and helpers |
 
-Agents use models through `ig26-models/<deployment>` (the domain's route in API Management) and tools through MCP servers in API Management. No agent exists for Customer operations; `support-agent` is configured with the Customer ops MCP server on purpose so the gateway can deny it.
+Agents use models through `ig26-models-<project>/<deployment>` (the domain's route in API Management) and tools through MCP servers in API Management. No agent exists for Customer operations; `support-agent` is configured with the Customer ops MCP server on purpose so the gateway can deny it.
 
 State about the created agents (names, versions, identity IDs) is written to `.ig26/agents.json`, which is git-ignored.
 

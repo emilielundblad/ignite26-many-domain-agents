@@ -55,7 +55,7 @@ The MCP server policy validates the agent token and passes it on in `x-ig26-agen
 
 ## The setup script says the model route through API Management failed
 
-The agents use their models through API Management (`ig26-models/<deployment>`). If that route fails, the script recreates the agents with the direct deployment so the tool demos still work, and demo 3 skips the token budget test. Common causes:
+The agents use their models through API Management (`ig26-models-<project>/<deployment>`). If that route fails, the script recreates the agents with the direct deployment so the tool demos still work, and demo 3 skips the token budget test. Common causes:
 
 - the API Management managed identity role on Foundry is still propagating: wait ten minutes and run `python -m agents.setup_agents` again
 - the project managed identity token is rejected: check `traces` in Application Insights for `DENY model route`
