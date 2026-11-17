@@ -1,0 +1,15 @@
+{
+  // Microsoft Graph MCP server (Lokka, https://lokka.dev) in client-token mode:
+  // no client secret is stored anywhere. After the server starts, acquire a token
+  // with your own signed-in session and hand it to the server's set-access-token tool:
+  //   az account get-access-token --resource-type ms-graph --query accessToken -o tsv
+  "servers": {
+    "microsoft-graph": {
+      "command": "npx",
+      "args": ["-y", "@merill/lokka"],
+      "env": {
+        "USE_CLIENT_TOKEN": "true"
+      }
+    }
+  }
+}

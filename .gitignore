@@ -30,6 +30,7 @@ infra/*.json
 # Editor and OS
 .vscode/*
 !.vscode/extensions.json
+!.vscode/mcp.json
 .idea/
 .DS_Store
 Thumbs.db

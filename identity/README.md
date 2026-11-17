@@ -5,6 +5,7 @@ Entra pieces of the pattern. All scripts use your own signed-in session (`azd au
 | Script | What it does | Writes to Entra |
 |---|---|---|
 | `setup_gateway_app.py` | Creates or reuses the app `ig26-mcp-gateway-<env>`: identifier URI `api://<appId>`, v2 tokens, app roles `Support.Tools`, `Docs.Tools`, `CustOps.Tools` (applications only), service principal with *assignment required*. Runs as the azd `preprovision` hook | Yes |
+| `setup_gateway_app.ps1` | PowerShell 7 twin of the above (Microsoft Graph PowerShell SDK), for showing the Entra creation steps on screen in demo 1. Same deterministic role IDs; the two scripts can be mixed freely | Yes |
 | `assign_agent_roles.py` | Grants or revokes an app role for an agent identity. Called by `agents/setup_agents.py` | Yes |
 | `run_demo1.py` | Demo 1, read-only: walks the five slide steps, pauses between them, masks IDs for recording, checks Conditional Access is report-only. See [docs/demo-1-runbook.md](../docs/demo-1-runbook.md) | No |
 | `show_agent_identities.py` | Short read-only report: identity, blueprint, sponsors, gateway roles | No |
