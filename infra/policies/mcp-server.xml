@@ -1,6 +1,15 @@
 <!--
   Policy for one domain's MCP server (__MCP_NAME__).
-  Runs for tools/list and every tools/call, before the backend.
+  Runs for every MCP request, before the backend.
+
+  Every request must carry a valid agent token for the gateway app (401 without one).
+  The domain app role is enforced on tools/call: Foundry Agent Service fetches
+  tools/list from every configured MCP connection when a run starts, and a 403 on
+  that listing fails the whole run instead of surfacing a denied tool call. Listing
+  tool names leaks no data and invokes no backend (APIM answers it from the API
+  definition); the actual invocation is denied here with 403, and the REST API scope
+  behind this server enforces the domain role on every operation as defense in depth.
+  https://learn.microsoft.com/azure/api-management/secure-mcp-servers
 
   llm-content-safety checks MCP requests (tool arguments) with Prompt Shields and
   the harm categories. https://learn.microsoft.com/azure/api-management/llm-content-safety-policy
@@ -10,8 +19,38 @@
 <policies>
 	<inbound>
 		<base />
-		<set-variable name="ig26-required-role" value="__APP_ROLE__" />
-		<include-fragment fragment-id="ig26-authorize-agent" />
+		<set-variable name="ig26-mcp-method" value="@{
+			if (!context.Request.Method.Equals("POST")) { return "stream"; }
+			try {
+				var body = context.Request.Body?.As&lt;JObject&gt;(preserveContent: true);
+				return (string)(body?["method"] ?? "");
+			} catch { return ""; }
+		}" />
+		<set-variable name="ig26-mcp-id" value="@{
+			if (!context.Request.Method.Equals("POST")) { return "0"; }
+			try {
+				var body = context.Request.Body?.As&lt;JObject&gt;(preserveContent: true);
+				return (string)(body?["id"] ?? "0");
+			} catch { return "0"; }
+		}" />
+		<choose>
+			<when condition="@((string)context.Variables["ig26-mcp-method"] == "tools/call")">
+				<set-variable name="ig26-required-role" value="__APP_ROLE__" />
+				<!-- MCP clients need tool failures as a JSON-RPC isError result, not a
+				     transport-level 403: Foundry Agent Service fails the whole run on an
+				     HTTP error. The fragment still writes the DENY trace and metric. -->
+				<set-variable name="ig26-deny-style" value="jsonrpc" />
+				<include-fragment fragment-id="ig26-authorize-agent" />
+			</when>
+			<otherwise>
+				<validate-azure-ad-token tenant-id="{{ig26-tenant-id}}" header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized: a Microsoft Entra token for the governed MCP gateway is required.">
+					<audiences>
+						<audience>{{ig26-mcp-gateway-app-id}}</audience>
+						<audience>api://{{ig26-mcp-gateway-app-id}}</audience>
+					</audiences>
+				</validate-azure-ad-token>
+			</otherwise>
+		</choose>
 		<llm-content-safety backend-id="ig26-content-safety" shield-prompt="true">
 			<categories output-type="EightSeverityLevels">
 				<category name="Hate" threshold="4" />
