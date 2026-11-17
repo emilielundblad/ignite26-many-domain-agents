@@ -49,6 +49,8 @@ param appGatewayCertificateUri string = ''
 param ownerTag string = 'ig26-lab'
 @description('Value of the teardown tag.')
 param teardownTag string = 'after-2026-11-30'
+@description('Value of the deletiondate tag. Lab subscriptions with lifecycle automation often delete resources that lack it; set it to the date the lab may be removed.')
+param deletionDateTag string = '2026-12-05'
 
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 var tags = {
@@ -56,6 +58,7 @@ var tags = {
   'azd-env-name': environmentName
   owner: ownerTag
   teardown: teardownTag
+  deletiondate: deletionDateTag
 }
 
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
