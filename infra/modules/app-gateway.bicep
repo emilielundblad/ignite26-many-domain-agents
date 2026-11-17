@@ -18,8 +18,8 @@ param apimGatewayHostName string
 param logAnalyticsWorkspaceId string
 param actionGroupId string
 
-@description('Default Rule Set version. Check which versions your region offers.')
-param wafRuleSetVersion string = '2.1'
+@description('Default Rule Set version. 2.2 is the latest recommended set. Check which versions your region offers.')
+param wafRuleSetVersion string = '2.2'
 
 var keyVaultSecretsUserRoleId = '4633458b-17de-408a-b874-0445c86b69e6'
 var name = 'agw-ig26-${resourceToken}'

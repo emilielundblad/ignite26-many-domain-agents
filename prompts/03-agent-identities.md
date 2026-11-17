@@ -6,7 +6,7 @@
 
 Read CLAUDE.md first and follow it. This step changes Entra, so every write needs my explicit approval in the chat.
 
-Goal: one agent identity blueprint per domain, agent identities from those blueprints, a human sponsor on each, Conditional Access targeting the blueprints, and access packages that govern what each agent can request. This is the Demo 1 environment.
+Goal: an agent identity blueprint and agent identity per agent (the Foundry default), a human sponsor on each, Conditional Access that allows only approved agents, and access packages that govern what each agent can request. This is the Demo 1 environment.
 
 Before writing anything, read these Learn pages and summarise for me what is GA and what is preview today:
 - Agent identity blueprints; Create a blueprint; Manage blueprints

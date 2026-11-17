@@ -20,7 +20,7 @@
 
 1. 10 s: Claude Code session showing the step 3 prompt and the approved plan (blur any IDs).
 2. Terminal: `python -m identity.run_demo1` (IDs are masked). Full shot list and preparation: [demo-1-runbook.md](../demo-1-runbook.md).
-3. Entra admin center > Agent ID > Agent identities, filtered by blueprint: one per domain project.
+3. Entra admin center > Agent ID > Agent identities: each agent with its own blueprint and identity.
 4. Open the Support agent identity: blueprint, sponsor, sign-in logs.
 5. Enterprise applications > `ig26-mcp-gateway-<env>`: assignment required, and the app role assignments (Support holds Support.Tools and Docs.Tools; nobody holds CustOps.Tools).
 6. Conditional Access in report-only: the policy plan `ig26-agents-at-risk` and the policy targeting the `custops` blueprint (say: it targets the blueprint, so future agents are covered).

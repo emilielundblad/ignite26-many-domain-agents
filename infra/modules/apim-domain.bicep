@@ -51,30 +51,39 @@ resource operations 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-
   name: t
 }]
 
-resource mcp 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' = {
+resource mcp 'Microsoft.ApiManagement/service/apis@2025-09-01-preview' = {
   parent: apim
   name: mcpName
   properties: {
+    // MCP servers are managed with API version 2025-09-01-preview or later, as an
+    // API of type `mcp` with tools as apis/tools child resources:
+    // https://learn.microsoft.com/azure/api-management/manage-mcp-servers-rest-api
     type: 'mcp'
     displayName: mcpDisplayName
     description: '${domainDisplayName} domain tools. Callers need the ${appRole} app role on the gateway app.'
     path: mcpName
     protocols: ['https']
     subscriptionRequired: false
-    // mcpTools is accepted by the service but not yet in the Bicep type definitions.
-    #disable-next-line BCP037
-    mcpTools: [for (t, i) in tools: {
-      name: t
-      operationId: operations[i].id
-      description: operations[i].properties.description
-    }]
   }
   dependsOn: [
     restPolicy
   ]
 }
 
-resource mcpPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-preview' = {
+// One tool per selected REST operation. Tools are child resources, so they can be
+// added, renamed or removed without recreating the MCP server.
+// https://learn.microsoft.com/azure/templates/microsoft.apimanagement/2025-09-01-preview/service/apis/tools
+resource mcpToolResources 'Microsoft.ApiManagement/service/apis/tools@2025-09-01-preview' = [for (t, i) in tools: {
+  parent: mcp
+  name: t
+  properties: {
+    displayName: t
+    description: operations[i].properties.description
+    operationId: operations[i].id
+  }
+}]
+
+resource mcpPolicy 'Microsoft.ApiManagement/service/apis/policies@2025-09-01-preview' = {
   parent: mcp
   name: 'policy'
   properties: {

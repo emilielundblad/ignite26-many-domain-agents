@@ -3,11 +3,11 @@
 Walks the five steps on the Demo 1 slide, in order, pausing between steps so you
 can switch to the Entra admin center and record the matching portal view:
 
-  1. The agent identities Foundry created: one blueprint per domain project
+  1. The agent identities Foundry created: each agent with its own blueprint
   2. The Support agent: blueprint, sponsors, recent sign-ins
   3. The gateway app: assignment required, and who holds which role
-  4. Conditional Access: the ig26 policies and their state (must be report-only)
-  5. Lifecycle: where the default inactivity policy lives
+  4. Conditional Access: only approved agents reach the gateway (report-only)
+  5. Lifecycle: the default inactivity policy, free but off until you enable it
 
     python -m identity.run_demo1              # pauses between steps, masks IDs for recording
     python -m identity.run_demo1 --no-pause   # straight through
@@ -67,8 +67,10 @@ def try_get(path: str):
 
 
 def step1(out: Out, agents: list[dict]) -> None:
-    out.step(1, "Agent identities, one blueprint per domain project",
-             "Entra admin center > Agent ID > Agent identities (filter by blueprint)")
+    # Each agent has its own blueprint and default instance identity from creation:
+    # https://learn.microsoft.com/azure/foundry/agents/concepts/agent-identity
+    out.step(1, "Agent identities: each agent has its own blueprint",
+             "Entra admin center > Agent ID > Agent identities (open an agent to see its blueprint)")
     for a in agents:
         sp, err = try_get(f"/servicePrincipals/{a['instanceIdentity']['principalId']}?$select=displayName,appId,servicePrincipalType")
         bp = (a.get("blueprint") or {}).get("clientId")
@@ -78,7 +80,7 @@ def step1(out: Out, agents: list[dict]) -> None:
         elif err:
             print(f"      {err}")
     print("  project custops  no agent: the domain exists but is not enabled")
-    print("\n  Say: each domain project has its own blueprint, and each agent its own identity. No secrets anywhere.")
+    print("\n  Say: every agent gets its own blueprint and its own identity at creation. No secrets anywhere.")
 
 
 def step2(out: Out, agents: list[dict]) -> None:
@@ -132,28 +134,45 @@ def step3(out: Out, sp_id: str) -> None:
     print("\n  Say: no role, no token, no tool. Nobody holds CustOps.Tools, so that domain is unreachable.")
 
 
-def step4(out: Out) -> None:
-    out.step(4, "Conditional Access: agents at risk, and the Customer ops blueprint",
-             "Conditional Access > Policies (and Policy plans, preview)")
+def step4(out: Out, agents: list[dict]) -> None:
+    # "Allow only approved agents": custom security attributes on each agent identity,
+    # targeted by a Conditional Access policy in report-only.
+    # https://learn.microsoft.com/entra/identity/conditional-access/policy-autonomous-agents
+    out.step(4, "Conditional Access: only approved agents reach the gateway",
+             "Conditional Access > Policies > ig26-block-unapproved-agents (and Policy plans, preview)")
+    for a in agents:
+        sp, err = try_get(f"/servicePrincipals/{a['instanceIdentity']['principalId']}?$select=displayName,customSecurityAttributes")
+        if sp is None:
+            print(f"  {a['name']:<14} attributes {err}; show them on the agent identity page")
+            continue
+        attrs = ((sp.get("customSecurityAttributes") or {}).get("AgentAttributes") or {})
+        status = attrs.get("AgentApprovalStatus") or []
+        status = status if isinstance(status, list) else [status]
+        flag = ", ".join(status) if status else "NOT SET  <-- run python -m identity.tag_agents before recording"
+        print(f"  {a['name']:<14} AgentAttributes.AgentApprovalStatus = {flag}")
     found, err = try_get("/identity/conditionalAccess/policies?$select=id,displayName,state")
     if found is None:
-        print(f"  {err}; show the policies in the portal")
+        print(f"  policies {err}; show them in the portal")
         return
     ours = [p for p in found.get("value", []) if p.get("displayName", "").lower().startswith("ig26")]
-    if not ours:
-        print("  No policies named ig26-* yet. Create them before recording (runbook, prepare step 3).")
+    if not any(p.get("displayName") == "ig26-block-unapproved-agents" for p in ours):
+        print("  Policy ig26-block-unapproved-agents not found. Create it before recording (runbook, prepare step 3).")
     for p in ours:
         flag = "report-only" if p.get("state") == REPORT_ONLY else f"{p.get('state')}  <-- expected report-only"
         print(f"  {p['displayName']:<40} {flag}")
-    print("\n  Say: the rule targets the blueprint, so the next Customer ops agent is covered before it exists.")
+    print("\n  Say: agents without AgentApprovalStatus = Gateway_Approved are blocked at the gateway app.")
+    print("  The attribute is set per agent identity; approval is explicit, reviewable and revocable.")
     print("  Policy plans are preview; show the plan and its two rules in the portal.")
 
 
 def step5(out: Out) -> None:
+    # Free in every tenant, but off until someone enables it:
+    # https://learn.microsoft.com/entra/id-governance/agent-default-inactivity-policy
     out.step(5, "Lifecycle: the default inactivity policy",
-             "Identity governance > Agent ID lifecycle policies (preview)")
-    print("  Default inactivity policy: notify at 60 days, disable at 90, delete at 455. No licence needed.")
-    print("  Show it in the portal, then the reconfirmation policy you added for the lab blueprints.")
+             "Identity governance > Lifecycle Workflows > Lifecycle Policies > Agent ID (preview)")
+    print("  The default inactivity policy ships in every tenant at no cost, but it is OFF until you enable it.")
+    print("  Once enabled it notifies owners and sponsors of inactive agents, then disables and deletes them.")
+    print("  Show the Enable policy toggle (prepare step 4 switched it on), then the reconfirmation policy you added.")
 
 
 def main() -> None:
@@ -172,7 +191,7 @@ def main() -> None:
     step1(out, agents)
     step2(out, agents)
     step3(out, sp_id)
-    step4(out)
+    step4(out, agents)
     step5(out)
     print("\nDone. Nothing was changed.")
 
