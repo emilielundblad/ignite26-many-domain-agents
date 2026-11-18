@@ -123,13 +123,17 @@ def summarize(response) -> dict[str, Any]:
         kind = getattr(item, "type", "")
         if kind == "mcp_call":
             error = getattr(item, "error", None)
+            output = str(getattr(item, "output", "") or "")
+            # The gateway returns domain denials as an MCP isError result (a transport
+            # 403 would fail the whole run), so detect them in the tool output.
+            denied = '"error": "forbidden"' in output or "Denied at the API Management AI gateway" in output
             calls.append(
                 {
                     "server": getattr(item, "server_label", ""),
                     "tool": getattr(item, "name", ""),
                     "arguments": getattr(item, "arguments", ""),
-                    "outcome": "error" if error else "ok",
-                    "error": str(error)[:400] if error else None,
+                    "outcome": "error" if error else ("denied" if denied else "ok"),
+                    "error": str(error)[:400] if error else (output[:400] if denied else None),
                 }
             )
     return {

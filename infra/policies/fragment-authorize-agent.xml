@@ -42,23 +42,67 @@
 				<dimension name="Caller" value="@((string)context.Variables["ig26-caller"])" />
 				<dimension name="API ID" />
 			</emit-metric>
-			<return-response>
-				<set-status code="403" reason="Forbidden" />
-				<set-header name="Content-Type" exists-action="override">
-					<value>application/json</value>
-				</set-header>
-				<set-header name="x-ig26-deny-reason" exists-action="override">
-					<value>domain-boundary</value>
-				</set-header>
-				<set-body>@(new JObject(
-					new JProperty("error", "forbidden"),
-					new JProperty("reason", "This agent's domain is not allowed to use this tool. Denied at the API Management AI gateway before reaching the backend."),
-					new JProperty("caller", (string)context.Variables["ig26-caller"]),
-					new JProperty("api", context.Api.Name),
-					new JProperty("requiredRole", (string)context.Variables["ig26-required-role"]),
-					new JProperty("requestId", context.RequestId.ToString())
-				).ToString())</set-body>
-			</return-response>
+			<choose>
+				<!-- MCP server scope sets ig26-deny-style=jsonrpc: MCP clients need tool
+				     failures as a JSON-RPC isError result (HTTP 200), or the whole agent
+				     run fails instead of showing a denied tool call. The deny is still
+				     traced and metered above; the REST scope keeps the hard 403 below. -->
+				<when condition="@(context.Variables.ContainsKey("ig26-deny-style") &amp;&amp; (string)context.Variables["ig26-deny-style"] == "jsonrpc")">
+					<return-response>
+						<set-status code="200" reason="OK" />
+						<set-header name="Content-Type" exists-action="override">
+							<value>application/json</value>
+						</set-header>
+						<set-header name="x-ig26-deny-reason" exists-action="override">
+							<value>domain-boundary</value>
+						</set-header>
+						<set-body>@{
+							var deny = new JObject(
+								new JProperty("error", "forbidden"),
+								new JProperty("httpEquivalent", 403),
+								new JProperty("reason", "This agent's domain is not allowed to use this tool. Denied at the API Management AI gateway before reaching the backend."),
+								new JProperty("caller", (string)context.Variables["ig26-caller"]),
+								new JProperty("api", context.Api.Name),
+								new JProperty("requiredRole", (string)context.Variables["ig26-required-role"]),
+								new JProperty("requestId", context.RequestId.ToString())
+							);
+							object idRaw = context.Variables.GetValueOrDefault("ig26-mcp-id", "0");
+							long idNum;
+							var idValue = long.TryParse((string)idRaw, out idNum) ? new JValue(idNum) : new JValue((string)idRaw);
+							return new JObject(
+								new JProperty("jsonrpc", "2.0"),
+								new JProperty("id", idValue),
+								new JProperty("result", new JObject(
+									new JProperty("isError", true),
+									new JProperty("content", new JArray(new JObject(
+										new JProperty("type", "text"),
+										new JProperty("text", deny.ToString())
+									)))
+								))
+							).ToString();
+						}</set-body>
+					</return-response>
+				</when>
+				<otherwise>
+					<return-response>
+						<set-status code="403" reason="Forbidden" />
+						<set-header name="Content-Type" exists-action="override">
+							<value>application/json</value>
+						</set-header>
+						<set-header name="x-ig26-deny-reason" exists-action="override">
+							<value>domain-boundary</value>
+						</set-header>
+						<set-body>@(new JObject(
+							new JProperty("error", "forbidden"),
+							new JProperty("reason", "This agent's domain is not allowed to use this tool. Denied at the API Management AI gateway before reaching the backend."),
+							new JProperty("caller", (string)context.Variables["ig26-caller"]),
+							new JProperty("api", context.Api.Name),
+							new JProperty("requiredRole", (string)context.Variables["ig26-required-role"]),
+							new JProperty("requestId", context.RequestId.ToString())
+						).ToString())</set-body>
+					</return-response>
+				</otherwise>
+			</choose>
 		</when>
 	</choose>
 	<trace source="ig26-domain-boundary" severity="information">

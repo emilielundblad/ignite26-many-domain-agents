@@ -62,7 +62,7 @@ def main() -> None:
     print("\n=== Checks")
     print(f"  (a) tool calls ok           : {all(c['outcome'] == 'ok' for c in results[0][1]['tool_calls']) and bool(results[0][1]['tool_calls'])}")
     print(f"  (a) answer cites a KB URL   : {'docs.example.com/aurora/kb/' in results[0][1]['text']}")
-    print(f"  (b) credit-note tool denied : {bool(denied) and all(c['outcome'] == 'error' for c in denied)}")
+    print(f"  (b) credit-note tool denied : {bool(denied) and all(c['outcome'] in ('denied', 'error') for c in denied)}")
     if not denied:
         print("      The model did not call the tool this time. Run the demo again; the gateway check is in docs/demo-walkthrough.md.")
     print("\nOpen Foundry > support project > Agents > support-agent > Traces, and compare the two responses above.")
