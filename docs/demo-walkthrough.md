@@ -4,7 +4,7 @@ How to run the three demos after `azd up`. Each demo lists what you will see, th
 
 ## Demo 1: Per-domain identities
 
-**Architecture in play:** Foundry creates an agent identity blueprint per project and an agent identity per agent; the gateway app's app roles decide what each identity may call; Conditional Access and lifecycle policies govern them. See [architecture 3](architecture/03-identity.png).
+**Architecture in play:** Foundry creates an agent identity blueprint and an agent identity for each agent; the gateway app's app roles decide what each identity may call; Conditional Access and lifecycle policies govern them. See [architecture 3](architecture/03-identity.png).
 
 Sponsors, Conditional Access and the lifecycle policy are prepared by hand once (they need your admin role and are not scripted on purpose). Follow **[demo-1-runbook.md](demo-1-runbook.md)**: prepare, check, then record with
 

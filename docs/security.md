@@ -28,7 +28,7 @@ This lab follows the [Microsoft cloud security benchmark](https://learn.microsof
 
 | Control | How |
 |---|---|
-| Policy before the model | `validate-azure-ad-token`, domain app role check, `llm-content-safety` with Prompt Shields, `llm-token-limit` |
+| Policy before the model | `validate-azure-ad-token`, agent marker check (`xms_act_fct` 11 or `xms_par_app_azp`, named value `ig26-agent-token-check`: audit by default), domain app role check on the `roles` claim only, `llm-content-safety` with Prompt Shields, `llm-token-limit` |
 | Tool output is data | Agent instructions say so; ticket 1043 tests it; Prompt Shields checks tool arguments |
 | Boundary in two places | MCP server scope and REST API scope both run the domain check |
 | Auditability | Every allow and deny is a trace record with the caller's client ID; token metrics per domain |

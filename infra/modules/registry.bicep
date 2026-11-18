@@ -7,7 +7,7 @@ param tags object
 param resourceToken string
 param logAnalyticsWorkspaceId string
 
-resource acr 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
+resource acr 'Microsoft.ContainerRegistry/registries@2025-05-01-preview' = {
   name: 'crig26${resourceToken}'
   location: location
   tags: tags
@@ -18,6 +18,10 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
     adminUserEnabled: false
     anonymousPullEnabled: false
     publicNetworkAccess: 'Enabled'
+    // Legacy (registry-wide) role assignment mode, so the AcrPull role assignment in
+    // modules/roles.bicep grants image pulls. The ABAC repository-permissions mode
+    // ignores AcrPull: https://learn.microsoft.com/azure/container-registry/container-registry-rbac-abac-repository-permissions
+    roleAssignmentMode: 'LegacyRegistryPermissions'
     policies: {
       retentionPolicy: {
         status: 'disabled'

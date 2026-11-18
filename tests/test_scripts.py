@@ -33,6 +33,17 @@ def test_role_values_match_bicep():
         assert f"appRole: '{value}'" in bicep
 
 
+def test_tag_agents_patch_shape():
+    from identity.tag_agents import APPROVED, approval_patch
+
+    body = approval_patch()["customSecurityAttributes"]["AgentAttributes"]
+    assert body["@odata.type"] == "#microsoft.graph.customSecurityAttributeValue"
+    assert body["AgentApprovalStatus@odata.type"] == "#Collection(String)"
+    assert body["AgentApprovalStatus"] == [APPROVED]
+    revoked = approval_patch(revoke=True)["customSecurityAttributes"]["AgentAttributes"]
+    assert revoked["AgentApprovalStatus"] == []
+
+
 class FakeGraph:
     def __init__(self):
         self.calls = []
@@ -191,9 +202,11 @@ def test_demo1_is_read_only(monkeypatch):
     def fake(method, path, body=None, **kw):
         calls.append(method)
         if "conditionalAccess" in path:
-            return {"value": [{"id": "x", "displayName": "ig26-block-custops-agents", "state": "enabledForReportingButNotEnforced"}]}
+            return {"value": [{"id": "x", "displayName": "ig26-block-unapproved-agents", "state": "enabledForReportingButNotEnforced"}]}
         if "appRoleAssignedTo" in path:
             return {"value": []}
+        if "customSecurityAttributes" in path:
+            return {"displayName": "support-agent", "customSecurityAttributes": {"AgentAttributes": {"AgentApprovalStatus": ["Gateway_Approved"]}}}
         return {"displayName": "ig26-mcp-gateway-test", "appId": "a", "appRoleAssignmentRequired": True, "value": []}
 
     monkeypatch.setattr(g, "request", fake)
@@ -202,6 +215,6 @@ def test_demo1_is_read_only(monkeypatch):
     run_demo1.step1(out, agents)
     run_demo1.step2(out, agents)
     run_demo1.step3(out, "sp")
-    run_demo1.step4(out)
+    run_demo1.step4(out, agents)
     run_demo1.step5(out)
     assert set(calls) == {"GET"}

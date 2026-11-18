@@ -18,7 +18,7 @@ Three domains are modelled: **Support** and **Documentation** (enabled, each wit
 | | |
 |---|---|
 | ![Reference topology](docs/architecture/01-reference-topology.png) | ![Identity](docs/architecture/03-identity.png) |
-| **Reference topology.** One governed entry; internal runtime. | **Identity.** One blueprint per domain project, an identity per agent, app roles on the gateway. |
+| **Reference topology.** One governed entry; internal runtime. | **Identity.** Each agent has its own blueprint and agent identity, app roles on the gateway. |
 | ![Request sequence](docs/architecture/04-request-sequence.png) | ![Boundary policy](docs/architecture/05-boundary-policy.png) |
 | **Request sequence.** Seven hops, one trace. | **Boundary test.** Support asks for a Customer ops tool and is denied at the gateway. |
 | ![Gateway pipeline](docs/architecture/06-gateway-policy-pipeline.png) | ![Fleet and audit](docs/architecture/07-fleet-and-audit.png) |
@@ -127,21 +127,25 @@ It shows the plan and asks you to type the environment name. It runs `azd down`,
 
 ## Status notes
 
-Checked 15 November 2026 against Microsoft Learn. Re-check before you rely on any of these.
+Checked 17 November 2026 against Microsoft Learn. Re-check before you rely on any of these.
 
 | Capability | Status |
 |---|---|
 | Microsoft Entra Agent ID | GA |
 | Foundry agent identity per agent; MCP tool authentication with agent identity | Documented (Learn, updated 4 Nov 2026) |
-| API Management MCP servers from REST APIs on Standard v2 | Supported; not in workspaces; tools only |
+| API Management MCP servers from REST APIs on Standard v2 | Supported; not in workspaces; tools only; managed with API version 2025-09-01-preview |
 | `llm-content-safety` for MCP | GA |
-| `llm-emit-token-metric` | Preview |
-| Foundry Control Plane | No GA label on Learn |
-| Conditional Access targeting agents; agent risk | Agent entry labelled preview; agent risk preview |
+| `llm-emit-token-metric` | GA; the extra token categories (cached, reasoning, thinking) are preview |
+| Foundry Control Plane | Operate panes marked preview on Learn |
+| Microsoft Agent 365 | GA since 1 May 2026 (per the Microsoft licensing announcement) |
+| Agent 365 blocking MCP servers and tools through API Management | Preview |
+| Defender agent security for Foundry and Copilot Studio agents | Needs an Agent 365 licence as of 1 July 2026 |
+| Conditional Access targeting agents; agent risk | Needs Microsoft 365 E7, or Agent 365 plus Entra ID P1 (P2 for agent risk) |
 | Conditional Access policy plans | Preview (4 Nov 2026) |
-| Agent ID lifecycle policies | Preview |
+| Agent ID lifecycle policies | Preview; the free default inactivity policy is off until you enable it |
+| Agent identity blueprint default changes (MC1506733, MC1506728) | Rolling out from 4 November to late November 2026 (message center) |
 
-Known limits: Purview enforces only for calls with a user context; agent-only calls are audited. `mcpTools` and the `AgenticIdentityToken` and `ProjectManagedIdentity` connection types are accepted by the service but missing from the Bicep type definitions, so those warnings are suppressed with a comment. Threat to know: [BluePhishing](https://www.proofpoint.com/us/blog/threat-insight/BluePhishing-Initial-Access-via-Third-Party-Agent-Blueprint-Consent).
+Known limits: Purview enforces only for calls with a user context; agent-only calls are audited. The `AgenticIdentityToken` and `ProjectManagedIdentity` connection types are accepted by the service but missing from the Bicep type definitions, so those warnings are suppressed with a comment. Threat to know: [BluePhishing](https://www.proofpoint.com/us/blog/threat-insight/BluePhishing-Initial-Access-via-Third-Party-Agent-Blueprint-Consent) (9 November 2026).
 
 ## Learn more
 

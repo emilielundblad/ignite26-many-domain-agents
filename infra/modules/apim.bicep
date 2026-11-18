@@ -79,6 +79,19 @@ resource restScopeAuthValue 'Microsoft.ApiManagement/service/namedValues@2024-06
   }
 }
 
+// Controls the agent marker check in the ig26-authorize-agent fragment:
+// "audit" (default) traces tokens without an agent marker, "enforce" rejects them,
+// "off" skips the check. https://learn.microsoft.com/entra/agent-id/agent-token-claims
+resource agentTokenCheckValue 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
+  parent: apim
+  name: 'ig26-agent-token-check'
+  properties: {
+    displayName: 'ig26-agent-token-check'
+    value: 'audit'
+    secret: false
+  }
+}
+
 resource logger 'Microsoft.ApiManagement/service/loggers@2024-06-01-preview' = {
   parent: apim
   name: 'appinsights'
@@ -92,7 +105,9 @@ resource logger 'Microsoft.ApiManagement/service/loggers@2024-06-01-preview' = {
 }
 
 // Service-wide App Insights diagnostics: W3C trace context so Foundry traces and
-// gateway requests correlate. No request or response bodies are logged.
+// gateway requests correlate. Request and response bodies are never logged
+// (bytes: 0 on both the frontend and the backend), so prompts and tool payloads
+// stay out of the logs.
 resource diagnostics 'Microsoft.ApiManagement/service/diagnostics@2024-06-01-preview' = {
   parent: apim
   name: 'applicationinsights'
@@ -106,6 +121,30 @@ resource diagnostics 'Microsoft.ApiManagement/service/diagnostics@2024-06-01-pre
     sampling: {
       samplingType: 'fixed'
       percentage: 100
+    }
+    frontend: {
+      request: {
+        body: {
+          bytes: 0
+        }
+      }
+      response: {
+        body: {
+          bytes: 0
+        }
+      }
+    }
+    backend: {
+      request: {
+        body: {
+          bytes: 0
+        }
+      }
+      response: {
+        body: {
+          bytes: 0
+        }
+      }
     }
   }
 }
@@ -174,6 +213,7 @@ resource authorizeFragment 'Microsoft.ApiManagement/service/policyFragments@2024
   dependsOn: [
     tenantIdValue
     gatewayAppIdValue
+    agentTokenCheckValue
   ]
 }
 
